@@ -1,4 +1,4 @@
-import { Over } from "../models/over.model.js";
+import { Over } from "../model/over.js";
 
 export const addBallToOver = async (req, res) => {
   try {
