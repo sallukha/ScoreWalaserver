@@ -1,12 +1,12 @@
- 
- 
- import mongoose from "mongoose";
+ // src/models/Team.js
+import mongoose from "mongoose";
 
 const teamSchema = new mongoose.Schema(
   {
-    name: String,
-    location: String,
-    players: [{ type: mongoose.Schema.Types.ObjectId, ref: "Player" }],
+    name: { type: String, required: true, trim: true },    // "Delhi Warriors"
+    shortName: { type: String, trim: true },                // "DELW"
+    location: { type: String, trim: true },                 // "Delhi"
+    logo: { type: String },                                 // optional image url
   },
   { timestamps: true }
 );

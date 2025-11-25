@@ -1,26 +1,45 @@
-import { Match } from "../model/Match.js";
-import { getIO } from "../sockets/socket.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+ import { Match } from "../model/Match.js";
 
-export const addBall = asyncHandler(async (req, res) => {
-  const { matchId } = req.params;
-  const { over, ballInOver, runs, isWicket } = req.body;
+export const addBall = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const {
+      ballNumber,
+      batsman,
+      bowler,
+      runs,
+      extrasType,
+      extrasRuns,
+      isWicket,
+      wicketType,
+    } = req.body;
 
-  const match = await Match.findById(matchId);
+    const match = await Match.findById(matchId);
+    if (!match) return res.status(404).json({ message: "Match not found" });
 
-  const inn = match.innings[0];
-  inn.balls.push({ over, ballInOver, runs, isWicket });
+    const innings = match.innings[match.currentInnings - 1];
+    if (!innings) return res.status(400).json({ message: "Innings not found" });
 
-  inn.totalRuns += runs;
-  if (isWicket) inn.wickets += 1;
+    innings.balls.push({
+      ballNumber,
+      batsman,
+      bowler,
+      runs,
+      extrasType,
+      extrasRuns,
+      isWicket,
+      wicketType,
+    });
 
-  await match.save();
+    innings.totalRuns += runs + (extrasRuns || 0);
+    innings.ballsBowled += extrasType === "wide" || extrasType === "no-ball" ? 0 : 1;
 
-  const io = getIO();
-  io.to(matchId).emit("score-update", {
-    score: `${inn.totalRuns}/${inn.wickets}`,
-  });
+    if (isWicket) innings.wickets += 1;
 
-  res.json(new ApiResponse(200, null, "Ball added"));
-});
+    await match.save();
+
+    res.json({ success: true, innings });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

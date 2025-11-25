@@ -1,8 +1,8 @@
-import mongoose from "mongoose";
+ import mongoose from "mongoose";
 
 const ballSchema = new mongoose.Schema(
   {
-    ballNumber: { type: Number, required: true }, // 1 to 6
+    ballNumber: { type: Number, required: true },
     bowler: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Player",
@@ -37,7 +37,7 @@ const overSchema = new mongoose.Schema(
       ref: "Match",
       required: true,
     },
-    innings: { type: Number, required: true }, // 1 or 2
+    innings: { type: Number, required: true },
     overNumber: { type: Number, required: true },
     bowler: {
       type: mongoose.Schema.Types.ObjectId,
@@ -45,8 +45,32 @@ const overSchema = new mongoose.Schema(
       required: true,
     },
     balls: [ballSchema],
+    totalRuns: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+// ✅ Unique constraint
+overSchema.index(
+  { matchId: 1, innings: 1, overNumber: 1 },
+  { unique: true }
+);
+
+// ✅ Max 6 legal balls validation + totalRuns calc
+overSchema.pre("save", function (next) {
+  const legalBalls = this.balls.filter(
+    (b) => b.extras !== "wide" && b.extras !== "no-ball"
+  ).length;
+
+  if (legalBalls > 6) {
+    return next(new Error("Over cannot have more than 6 legal balls"));
+  }
+
+  this.totalRuns = this.balls.reduce((sum, b) => {
+    return sum + b.runs + (b.extras ? 1 : 0);
+  }, 0);
+
+  next();
+});
 
 export const Over = mongoose.model("Over", overSchema);

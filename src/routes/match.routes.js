@@ -1,15 +1,16 @@
-import express from "express";
+ import express from "express";
 import {
   createMatch,
-  startMatch,
   getMatches,
-  createInnings
+  startMatch,
 } from "../controllers/match.controller.js";
 
 const router = express.Router();
+
 router.post("/", createMatch);
-router.put("/:id/start", startMatch);
 router.get("/", getMatches);
-router.post("/:matchId/innings", createInnings);
+
+// start match
+router.post("/:id/start", startMatch);
 
 export default router;

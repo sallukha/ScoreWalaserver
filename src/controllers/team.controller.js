@@ -1,13 +1,19 @@
  import { Team } from "../model/Team.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const createTeam = asyncHandler(async (req, res) => {
-  const team = await Team.create(req.body);
-  res.json(new ApiResponse(201, team, "Team created"));
-});
+export const createTeam = async (req, res) => {
+  try {
+    const team = await Team.create(req.body);
+    res.status(201).json({ success: true, team });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
-export const getTeams = asyncHandler(async (req, res) => {
-  const teams = await Team.find().populate("players");
-  res.json(new ApiResponse(200, teams));
-});
+export const getTeams = async (req, res) => {
+  try {
+    const teams = await Team.find();
+    res.json({ success: true, teams });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

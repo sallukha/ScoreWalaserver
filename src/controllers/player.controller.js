@@ -1,18 +1,19 @@
  import { Player } from "../model/Player.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const createPlayer = asyncHandler(async (req, res) => {
-  const player = await Player.create(req.body);
-  res.json(new ApiResponse(201, player, "Player created"));
-});
+export const createPlayer = async (req, res) => {
+  try {
+    const player = await Player.create(req.body);
+    res.status(201).json({ success: true, player });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
-export const getPlayers = asyncHandler(async (req, res) => {
-  const players = await Player.find();
-  res.json(new ApiResponse(200, players));
-});
-
-export const getPlayer = asyncHandler(async (req, res) => {
-  const player = await Player.findById(req.params.id);
-  res.json(new ApiResponse(200, player));
-});
+export const getPlayers = async (req, res) => {
+  try {
+    const players = await Player.find().populate("team");
+    res.json({ success: true, players });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

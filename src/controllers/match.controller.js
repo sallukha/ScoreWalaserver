@@ -1,42 +1,54 @@
-import { Match } from "../model/Match.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+ import { Match } from "../model/Match.js";
 
-export const createMatch = asyncHandler(async (req, res) => {
-  const match = await Match.create(req.body);
-  res.json(new ApiResponse(201, match));
-});
+export const createMatch = async (req, res) => {
+  try {
+    const match = await Match.create(req.body);
+    res.status(201).json({ success: true, match });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
-export const startMatch = asyncHandler(async (req, res) => {
-  const match = await Match.findById(req.params.id);
-  match.status = "live";
-  await match.save();
+export const getMatches = async (req, res) => {
+  try {
+    const matches = await Match.find()
+      .populate("teamA teamB tossWinner innings.battingTeam innings.bowlingTeam");
 
-  res.json(new ApiResponse(200, match, "Match started"));
-});
+    res.json({ success: true, matches });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
-export const getMatches = asyncHandler(async (req, res) => {
-  const matches = await Match.find().populate("teamA teamB");
-  res.json(new ApiResponse(200, matches));
-});
+// ✅ Start Match (create first innings)
+export const startMatch = async (req, res) => {
+  try {
+    const match = await Match.findById(req.params.id);
+    if (!match) return res.status(404).json({ message: "Match not found" });
 
+    match.status = "live";
 
-export const createInnings = asyncHandler(async (req, res) => {
-  const { matchId } = req.params;
-  const { battingTeam, bowlingTeam } = req.body;
+    if (match.innings.length === 0) {
+      match.innings.push({
+        inningsNumber: 1,
+        battingTeam:
+          match.tossDecision === "bat"
+            ? match.tossWinner
+            : match.teamA.equals(match.tossWinner)
+            ? match.teamB
+            : match.teamA,
+        bowlingTeam:
+          match.tossDecision === "bat"
+            ? match.teamA.equals(match.tossWinner)
+              ? match.teamB
+              : match.teamA
+            : match.tossWinner,
+      });
+    }
 
-  const match = await Match.findById(matchId);
-  if (!match) throw new ApiError(404, "Match not found");
-
-  match.innings.push({
-    battingTeam,
-    bowlingTeam,
-    totalRuns: 0,
-    wickets: 0,
-    balls: [],
-  });
-
-  await match.save();
-
-  res.json(new ApiResponse(200, match, "Innings created"));
-});
+    await match.save();
+    res.json({ success: true, match });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
