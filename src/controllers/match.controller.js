@@ -1,5 +1,5 @@
  import { Match } from "../model/Match.js";
-
+import { PointsTable } from "../model/PointsTable.js";
 export const createMatch = async (req, res) => {
   try {
     const match = await Match.create(req.body);
@@ -8,7 +8,6 @@ export const createMatch = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 export const getMatches = async (req, res) => {
   try {
     const matches = await Match.find()
@@ -51,4 +50,26 @@ export const startMatch = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+
+export const endMatch = async (req, res) => {
+  const { matchId } = req.params;
+  const { winnerTeam, loserTeam } = req.body;
+
+  const match = await Match.findById(matchId);
+  match.status = "completed";
+  await match.save();
+
+  await PointsTable.findOneAndUpdate(
+    { tournament: match.tournament, team: winnerTeam },
+    { $inc: { matchesPlayed: 1, wins: 1, points: 2 } }
+  );
+
+  await PointsTable.findOneAndUpdate(
+    { tournament: match.tournament, team: loserTeam },
+    { $inc: { matchesPlayed: 1, losses: 1 } }
+  );
+
+  res.json({ success: true, message: "Match ended + points updated" });
 };

@@ -70,7 +70,7 @@ overSchema.pre("save", function (next) {
     return sum + b.runs + (b.extras ? 1 : 0);
   }, 0);
 
-  next();
+  // next();
 });
 
 export const Over = mongoose.model("Over", overSchema);

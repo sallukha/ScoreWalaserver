@@ -1,45 +1,101 @@
  import { Match } from "../model/Match.js";
+import { getIO } from "../sockets/socket.js";
 
 export const addBall = async (req, res) => {
   try {
     const { matchId } = req.params;
+
     const {
       ballNumber,
       batsman,
       bowler,
-      runs,
-      extrasType,
-      extrasRuns,
-      isWicket,
-      wicketType,
+      runs = 0,
+      extrasType = null,
+      extrasRuns = 0,
+      isWicket = false,
+      wicketType = null,
     } = req.body;
 
+    // ✅ Guard checks
+    if (ballNumber === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "ballNumber is required",
+      });
+    }
+
     const match = await Match.findById(matchId);
-    if (!match) return res.status(404).json({ message: "Match not found" });
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found",
+      });
+    }
 
-    const innings = match.innings[match.currentInnings - 1];
-    if (!innings) return res.status(400).json({ message: "Innings not found" });
+    // ✅ Create innings if missing
+    if (!match.innings || match.innings.length === 0) {
+      match.innings = [
+        {
+          inningsNumber: 1,
+          battingTeam: match.teamA,
+          bowlingTeam: match.teamB,
+          totalRuns: 0,
+          wickets: 0,
+          ballsBowled: 0,
+          balls: [],
+        },
+      ];
+      match.currentInnings = 1;
+    }
 
+    const inningsIndex = match.currentInnings - 1;
+    const innings = match.innings[inningsIndex];
+
+    // ✅ Ensure inningsNumber exists
+    if (!innings.inningsNumber) {
+      innings.inningsNumber = match.currentInnings;
+    }
+
+    // ✅ CRAITICAL FIX: ensure ballNumber saved
     innings.balls.push({
-      ballNumber,
+      ballNumber: Number(ballNumber),
       batsman,
       bowler,
-      runs,
+      runs: Number(runs),
       extrasType,
-      extrasRuns,
+      extrasRuns: Number(extrasRuns),
       isWicket,
       wicketType,
     });
 
-    innings.totalRuns += runs + (extrasRuns || 0);
-    innings.ballsBowled += extrasType === "wide" || extrasType === "no-ball" ? 0 : 1;
+    // ✅ Update stats
+    innings.totalRuns += Number(runs) + Number(extrasRuns);
 
-    if (isWicket) innings.wickets += 1;
+    if (extrasType !== "wide" && extrasType !== "no-ball") {
+      innings.ballsBowled += 1;
+    }
+
+    if (isWicket) {
+      innings.wickets += 1;
+    }
 
     await match.save();
 
-    res.json({ success: true, innings });
+    // ✅ Emit socket
+    try {
+      getIO().to(matchId).emit("live-score", innings);
+    } catch (e) {}
+
+    res.status(200).json({
+      success: true,
+      message: "Ball added successfully",
+      innings,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("addBall ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

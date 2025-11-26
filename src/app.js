@@ -7,7 +7,8 @@ import playerRoutes from "./routes/player.routes.js";
 import matchRoutes from "./routes/match.routes.js";
 import scoreRoutes from "./routes/score.routes.js";
 import overRoutes from "./routes/over.routes.js";
-
+import Tournament  from "./routes/tournament.routes.js";
+import pointsRoutes from "./routes/points.routes.js";
 const app = express();
 
 // ✅ Middlewares
@@ -22,6 +23,8 @@ app.use("/api/players", playerRoutes);
 app.use("/api/matches", matchRoutes);
 app.use("/api/score", scoreRoutes);
 app.use("/api/overs", overRoutes);
+app.use("/api/tournaments", Tournament);
+app.use("/api/points", pointsRoutes);
 
 // ✅ Health check
 app.get("/", (req, res) => {
